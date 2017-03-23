@@ -12,7 +12,6 @@ export default class Pipeline extends Component {
       elements.push(<Element element={element} key={element.id}></Element>);
     }
 
-    // TODO: foreach elements
     return (
       <div className="pipeline">
         <h3>Pipeline: {this.props.pipeline.id}</h3>
