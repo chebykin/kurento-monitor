@@ -1,12 +1,16 @@
 /* globals kurentoClient */
 import React, {Component} from 'react';
-import logo from './logo.svg';
 import async from 'async';
 import './App.css';
+import Pipeline from './components/Pipeline';
 
 class App extends Component {
   KURENTO_URL = "ws://95.213.204.29:8889/kurento";
   ws;
+
+  state = {
+    pipelines: {}
+  };
 
   kurentoError(e) {
     console.error(e)
@@ -82,7 +86,9 @@ class App extends Component {
   }
 
   connect2KurentoDone(pipelines) {
-    console.log(pipelines);
+    this.setState({
+      pipelines: pipelines
+    });
   }
 
   componentDidMount() {
@@ -90,16 +96,18 @@ class App extends Component {
   }
 
   render() {
+    let pipelines = [];
+
+    for (let key of Object.keys(this.state.pipelines)) {
+      let pipeline = this.state.pipelines[key];
+      pipelines.push(<Pipeline pipeline={pipeline} key={key}></Pipeline>);
+    }
+
     return (
-      <div className="App">
-        <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo"/>
-          <h2>Welcome to React</h2>
+      <div className="container">
+        <div className="row">
+          {pipelines}
         </div>
-        <p className="App-intro">
-          <button onClick={this.connect2Kurento}>Connect to Kurento</button>
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
       </div>
     );
   }
