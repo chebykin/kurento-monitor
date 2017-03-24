@@ -68,7 +68,35 @@ class App extends Component {
                     element.sourcesConnections = kConnections;
                     sourcesCallback();
                   });
-                }
+                },
+                (mediaInCallback) => {
+                  kElement.isMediaFlowingIn('AUDIO', (error, is) => {
+                    element.audioFlowingIn = is;
+                    console.log(is);
+                    mediaInCallback();
+                  });
+                },
+                (mediaInCallback) => {
+                  kElement.isMediaFlowingIn('VIDEO', (error, is) => {
+                    element.videoFlowingIn = is;
+                    console.log(is);
+                    mediaInCallback();
+                  });
+                },
+                (mediaInCallback) => {
+                  kElement.isMediaFlowingOut('AUDIO', (error, is) => {
+                    element.audioFlowingOut = is;
+                    console.log(is);
+                    mediaInCallback();
+                  });
+                },
+                (mediaInCallback) => {
+                  kElement.isMediaFlowingOut('VIDEO', (error, is) => {
+                    element.videoFlowingOut = is;
+                    console.log(is);
+                    mediaInCallback();
+                  });
+                },
               ], (error) => {
                 if (error) return this.kurentoError(error);
 

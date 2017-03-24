@@ -1,3 +1,15 @@
-# Kurento Monitor
+= Kurento Monitor
 
 WARNING: under development
+
+== Covered events
+=== Server
+
+* ObjectCreated
+* ObjectDestroyed
+
+=== Endpoint
+
+* ConnectionStateChanged
+* MediaStateChanged
+* ElementConnected

@@ -1,26 +1,21 @@
-.App {
-  text-align: center;
+.conn {
+  font-size: 10px;
 }
 
-.App-logo {
-  animation: App-logo-spin infinite 20s linear;
-  height: 80px;
+.conn.conn-sink {
+  background: #fff4dc;
 }
 
-.App-header {
-  background-color: #222;
-  height: 150px;
-  padding: 20px;
-  color: white;
+.conn.conn-source {
+  background: #e4f6df;
 }
 
-.App-intro {
-  font-size: large;
+.conn.conn-sink.media-flow-in {
+  background: #ffde17;
 }
 
-@keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.conn.conn-source.media-flow-out {
+  background: #8af63e;
 }
 
 .endpoint {

@@ -15,7 +15,7 @@ export default class Pipeline extends Component {
     return (
       <div className="pipeline">
         <h3>Pipeline: {this.props.pipeline.id}</h3>
-        <div className="card-group">
+        <div className="card-deck">
           {elements}
         </div>
       </div>
