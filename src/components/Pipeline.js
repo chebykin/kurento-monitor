@@ -5,7 +5,6 @@ import Element from './Element';
 export default class Pipeline extends Component {
   render() {
     let elements = [];
-    console.log('pipeline');
 
     for (let key of Object.keys(this.props.pipeline.elements)) {
       let element = this.props.pipeline.elements[key];

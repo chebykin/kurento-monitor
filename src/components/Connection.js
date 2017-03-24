@@ -9,45 +9,44 @@ export default class Connection extends Component {
     let [idKurento, elementType] = this.peer().split('/')[1].split('.');
     this.id = idKurento.split('_')[0];
     this.elementType = elementType;
-    this.isSink = this.props.connType === 'sink';
-    console.log("parsed is ", elementType);
   }
 
   peer() {
-    if (this.isSink) {
-      return this.props.data.sink;
-    } else {
-      return this.props.data.source;
+    return this.props.data.peer;
+  }
+
+  /**
+   * Pale icons for audio and video connections
+   * Bright icons for audio and video connections with flowing data
+   * Bright icons for any data connection state
+   * @returns {Array}
+   */
+  icons() {
+    let elements = [];
+
+    if (this.props.data['audio']) {
+      elements.push(<i className={this.audioStyleClass()} key="audio" title="AUDIO"></i>);
     }
+
+    if (this.props.data['video']) {
+      elements.push(<i className={this.videoStyleClass()} key="video" title="VIDEO"></i>);
+    }
+
+    if (this.props.data['data']) {
+      elements.push(<i className="media-state media-state-bright fa fa-keyboard-o" key="data" title="DATA"></i>);
+    }
+
+    return elements;
   }
 
   render() {
-    let connClass = `list-group-item conn conn-${this.props.connType}`;
-
-    if (this.isSink && (
-      this.props.media.audioFlowingIn
-      || this.props.media.videoFlowingIn
-      || this.props.media.dataFlowingIn
-      )) {
-      connClass += ' media-flow-in';
-    }
-
-    if (!this.isSink && (
-        this.props.media.audioFlowingOut
-        || this.props.media.videoFlowingOut
-        || this.props.media.dataFlowingOut
-      )) {
-      connClass += ' media-flow-out';
-    }
-
-    let direction = this.isSink ? 'to' : 'from';
-
     return (
-      <li className={connClass}>
+      <li className={this.connStyleClass()}>
         {this.id} <br/>
-        {this.props.connType}&nbsp;{direction}<br/>
+        {this.connType}&nbsp;{this.direction()}<br/>
         {this.elementType}<br/>
-        </li>
+        {this.icons()}
+      </li>
     );
   }
 }

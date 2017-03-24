@@ -10,12 +10,22 @@
   background: #e4f6df;
 }
 
-.conn.conn-sink.media-flow-in {
+.conn.conn-sink.conn-bright {
   background: #ffde17;
 }
 
-.conn.conn-source.media-flow-out {
+.conn.conn-source.conn-bright {
   background: #8af63e;
+}
+
+.conn i.fa {
+  opacity: 0.4;
+  font-size: 14px;
+  padding-right: 8px;
+}
+
+.conn .media-state.media-state-bright {
+  opacity: 1;
 }
 
 .endpoint {

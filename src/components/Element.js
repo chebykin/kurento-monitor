@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
-import Connection from './Connection';
+import Sink from './Sink';
+import Source from './Source';
 
 
 export default class Element extends Component {
@@ -8,8 +9,8 @@ export default class Element extends Component {
 
     this.kElement = this.props.element.originalResponse;
 
-    this.sinks = this.props.element.sinkConnections || [];
-    this.sources = this.props.element.sourcesConnections || [];
+    this.sinks = this.props.element.sinkConnections || {};
+    this.sources = this.props.element.sourceConnections || {};
 
     this.flowingIn = false;
     this.flowingOut = false;
@@ -22,6 +23,8 @@ export default class Element extends Component {
       this.media.audioFlowingOut = this.props.element.audioFlowingOut;
       this.media.videoFlowingOut = this.props.element.videoFlowingOut;
     }
+
+    this.mapEvents()
   }
 
   name() {
@@ -43,10 +46,10 @@ export default class Element extends Component {
   sourceElements() {
     let sources = [];
 
-    for (let connData of this.sources) {
-      console.log(connData);
-      sources.push(<Connection data={connData} media={this.media} key={connData.sink} connType="source"/>);
-    }
+    Object.keys(this.sources).forEach((key) => {
+      let connData = this.sources[key];
+      sources.push(<Source data={connData} media={this.media} key={key}/>);
+    });
 
     return sources;
   }
@@ -54,10 +57,10 @@ export default class Element extends Component {
   sinkElements() {
     let sinks = [];
 
-    for (let connData of this.sinks) {
-      console.log(connData);
-      sinks.push(<Connection data={connData} media={this.media} key={connData.sink} connType="sink"/>);
-    }
+    Object.keys(this.sinks).forEach((key) => {
+      let connData = this.sinks[key];
+      sinks.push(<Sink data={connData} media={this.media} key={key}/>);
+    });
 
     return sinks;
   }
@@ -69,6 +72,8 @@ export default class Element extends Component {
     // ConnectionStateChanged
 
     let kElement = this.props.element.originalResponse;
+
+    if (!kElement) return;
 
     kElement.on('ElementConnected', (event) => {
       console.log('ElementConnected', event);

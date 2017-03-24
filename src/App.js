@@ -59,41 +59,61 @@ class App extends Component {
               async.parallel([
                 (sinksCallback) => {
                   kElement.getSinkConnections((error, kConnections) => {
-                    element.sinkConnections = kConnections;
+                    element.sinkConnections = {};
+
+                    kConnections.forEach((conn) => {
+                      let key = conn.type.toLowerCase();
+                      if (!element.sinkConnections[conn.source]) {
+                        element.sinkConnections[conn.source] = {
+                          peer: conn.source
+                        };
+                      }
+
+                      element.sinkConnections[conn.source][key] = conn;
+                    });
+
                     sinksCallback();
                   });
                 },
                 (sourcesCallback) => {
                   kElement.getSourceConnections((error, kConnections) => {
-                    element.sourcesConnections = kConnections;
+                    element.sourceConnections= {};
+
+                    kConnections.forEach((conn) => {
+                      let key = conn.type.toLowerCase();
+                      if (!element.sourceConnections[conn.sink]) {
+                        element.sourceConnections[conn.sink] = {
+                          peer: conn.sink
+                        };
+                      }
+
+                      element.sourceConnections[conn.sink][key] = conn;
+                    });
+
                     sourcesCallback();
                   });
                 },
                 (mediaInCallback) => {
                   kElement.isMediaFlowingIn('AUDIO', (error, is) => {
                     element.audioFlowingIn = is;
-                    console.log(is);
                     mediaInCallback();
                   });
                 },
                 (mediaInCallback) => {
                   kElement.isMediaFlowingIn('VIDEO', (error, is) => {
                     element.videoFlowingIn = is;
-                    console.log(is);
                     mediaInCallback();
                   });
                 },
                 (mediaInCallback) => {
                   kElement.isMediaFlowingOut('AUDIO', (error, is) => {
                     element.audioFlowingOut = is;
-                    console.log(is);
                     mediaInCallback();
                   });
                 },
                 (mediaInCallback) => {
                   kElement.isMediaFlowingOut('VIDEO', (error, is) => {
                     element.videoFlowingOut = is;
-                    console.log(is);
                     mediaInCallback();
                   });
                 },
