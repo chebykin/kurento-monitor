@@ -24,7 +24,14 @@ export default class Element extends Component {
       this.media.videoFlowingOut = this.props.element.videoFlowingOut;
     }
 
+    this.eventsMappend = false;
     this.mapEvents()
+  }
+
+  componentDidUpdate() {
+    if (this.eventsMappend === false) {
+      this.mapEvents();
+    }
   }
 
   name() {
@@ -90,6 +97,8 @@ export default class Element extends Component {
     kElement.on('ConnectionStateChanged', (event) => {
       console.log('ConnectionStateChanged', event);
     });
+
+    this.eventsMappend = true;
   }
 
   render() {

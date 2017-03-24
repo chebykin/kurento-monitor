@@ -3,15 +3,84 @@ import React, {Component} from 'react';
 import async from 'async';
 import './App.css';
 import Pipeline from './components/Pipeline';
+import Utils from './Utils';
 
 class App extends Component {
   KURENTO_URL = "ws://95.213.204.29:8889/kurento";
   ws;
   kurentoClientInstance;
 
+  loadElementsInterval = 300;
+  loadElementsQueue = [];
+  loadElementsLock = false;
+
   state = {
     pipelines: {}
   };
+
+  loadElementsWorker() {
+    console.log('loadElementsWorker tick');
+
+    setInterval(() => {
+      if (this.loadElementsLock) return;
+      if (!this.loadElementsQueue.length) return;
+      this.loadElementsLock = true;
+
+      let pipelines = [];
+
+      this.loadElementsQueue.forEach((element) => {
+        if (!(element.pipelineId in pipelines)) {
+          pipelines.push(element.pipelineId);
+        }
+      });
+      let fetchedElements = [];
+
+      console.log('have to load', pipelines);
+
+      this.manager((error, manager) => {
+        manager.getPipelines((error, kPipelines) => {
+          if (error) return this.kurentoError(error);
+
+          async.forEachOf(kPipelines, (kPipeline, key, pipelineCallback) => {
+            if (pipelines.indexOf(kPipeline.id) < 0) {
+              pipelineCallback();
+              return;
+            }
+
+            kPipeline.getChildren((error, kChildren) => {
+              if (error) return this.kurentoError(error);
+
+              let children = [];
+
+              kChildren.forEach((kChild) => {
+                children.push(kChild.id);
+              });
+
+              this.loadElementsQueue.forEach((element) => {
+                if (children.indexOf(element.fullId) >= 0) {
+                  console.log('have to assign', element.fullId);
+
+                  kChildren.forEach((kChild) => {
+                    if (kChild.id ===element.fullId) {
+                      fetchedElements.push(kChild);
+                    }
+                  });
+                }
+              });
+
+              pipelineCallback();
+            })
+          }, (error) => {
+            if (error) return this.kurentoError(error);
+
+            this.assignKElements(fetchedElements);
+            this.loadElementsQueue = [];
+            this.loadElementsLock = false;
+          })
+        });
+      });
+    }, this.loadElementsInterval)
+  }
 
   kurentoError(e) {
     console.error(e)
@@ -26,6 +95,7 @@ class App extends Component {
   }
 
   connect2Kurento() {
+    this.loadElementsWorker();
     console.log('hedy');
 
     let pipelines = {};
@@ -212,13 +282,30 @@ class App extends Component {
     pipelines[pipelineId].elements[elementId] = element;
     this.setState({pipelines: pipelines});
 
-    // TODO: populate element info
+    this.loadElementsQueue.push({
+      pipelineId: pipelineId,
+      elementId: elementId,
+      fullId: fullId
+    })
   }
 
   destroyElement(pipelineId, elementId) {
     console.log('destroy element', elementId);
     let pipelines = this.state.pipelines;
     delete pipelines[pipelineId].elements[elementId];
+    this.setState({pipelines: pipelines});
+  }
+
+  assignKElements(kElements) {
+    let pipelines = this.state.pipelines;
+
+    kElements.forEach((kElement) => {
+      let [pipelineId, elementId] = Utils.parseId(kElement.id);
+
+      pipelines[pipelineId].elements[elementId].originalResponse = kElement;
+      console.log('element', pipelines[pipelineId].elements[elementId], elementId);
+    });
+
     this.setState({pipelines: pipelines});
   }
 
