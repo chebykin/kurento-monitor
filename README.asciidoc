@@ -3,13 +3,52 @@
 WARNING: under development
 
 == Covered events
-=== Server
+=== ServerManager
 
 * ObjectCreated
 * ObjectDestroyed
 
-=== Endpoint
+=== Media Element events
+
+* ElementConnected
+* ElementDisconnected
+* MediaFlowInStateChange
+* MediaFlowOutStateChange
+
+=== BaseRtpEndpoint events
 
 * ConnectionStateChanged
 * MediaStateChanged
-* ElementConnected
+
+== Events to cover (TODO):
+=== SessionEndpoint
+
+* MediaSessionStarted
+* MediaSessionTerminated
+
+=== HttpPostEndpoint
+
+* EndOfStream
+
+=== PlayerEndpoint
+
+* EndOfStream
+
+=== RecorderEndpoint
+
+* Paused
+* Recording
+* Stopped
+
+=== RtpEndpoint
+
+* OnKeySoftLimit
+
+=== WebRtcEndpoint
+
+* (all of available)
+
+=== UriEndpoint
+
+* UriEndpointStateChanged
+
