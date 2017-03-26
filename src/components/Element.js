@@ -1,34 +1,61 @@
 import React, {Component} from 'react';
 import Sink from './Sink';
 import Source from './Source';
+import Utils from '../Utils';
 
 
 export default class Element extends Component {
+  state = {
+    sources: {},
+    sinks: {}
+  };
+
   constructor(props) {
     super(props);
 
+    let [pipelineId, elementId] = Utils.parseId(this.props.element.id);
+
+    this.id = this.props.element.id;
+    this.pipelineId = pipelineId;
+    this.elementId = elementId;
     this.kElement = this.props.element.originalResponse;
-
-    this.sinks = this.props.element.sinkConnections || {};
-    this.sources = this.props.element.sourceConnections || {};
-
-    this.flowingIn = false;
-    this.flowingOut = false;
-
-    this.media = {};
-
-    if (this.props.element.originalResponse) {
-      this.media.audioFlowingIn = this.props.element.audioFlowingIn;
-      this.media.videoFlowingIn = this.props.element.videoFlowingIn;
-      this.media.audioFlowingOut = this.props.element.audioFlowingOut;
-      this.media.videoFlowingOut = this.props.element.videoFlowingOut;
-    }
 
     this.eventsMappend = false;
     this.mapEvents()
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.updateState(nextProps);
+  }
+
+  componentWillUpdate() {
+    // WARNING: cannot set state here
+  }
+
+  componentDidMount() {
+    this.updateState(this.props);
+  }
+
+  componentWillUnmount() {
+    this.unmapEvents();
+  }
+
   componentDidUpdate() {
+
+  }
+
+  updateState(props) {
+    this.setState({
+      sinks: props.element.sinkConnections || {},
+      sources: props.element.sourceConnections || {},
+      media: {
+        audioFlowingIn: props.element.audioFlowingIn,
+        videoFlowingIn: props.element.videoFlowingIn,
+        audioFlowingOut: props.element.audioFlowingOut,
+        videoFlowingOut: props.element.videoFlowingOut,
+      }
+    });
+
     if (this.eventsMappend === false) {
       this.mapEvents();
     }
@@ -53,9 +80,9 @@ export default class Element extends Component {
   sourceElements() {
     let sources = [];
 
-    Object.keys(this.sources).forEach((key) => {
-      let connData = this.sources[key];
-      sources.push(<Source data={connData} media={this.media} key={key}/>);
+    Object.keys(this.state.sources).forEach((key) => {
+      let connData = this.state.sources[key];
+      sources.push(<Source data={connData} media={this.state.media} key={key}/>);
     });
 
     return sources;
@@ -64,23 +91,42 @@ export default class Element extends Component {
   sinkElements() {
     let sinks = [];
 
-    Object.keys(this.sinks).forEach((key) => {
-      let connData = this.sinks[key];
-      sinks.push(<Sink data={connData} media={this.media} key={key}/>);
+    Object.keys(this.state.sinks).forEach((key) => {
+      let connData = this.state.sinks[key];
+      sinks.push(<Sink data={connData} media={this.state.media} key={key}/>);
     });
 
     return sinks;
   }
 
-  mapEvents() {
-    // ElementConnected
-    // ElementDisconnected
-    // MediaStateChanged
-    // ConnectionStateChanged
+  onConnectionStateChanged(kElement) {
+    this.props.connChanged({
+      kElement,
+      id: this.id,
+      elementId: this.elementId,
+      pipelineId: this.pipelineId,
+    });
+  }
 
+  /**
+   *
+   * - ElementConnected
+   * - ElementDisconnected
+   * - MediaFlowOutStateChange
+   * - MediaFlowInStateChange
+   *
+   *
+   * RtpEndpointEvents/WebRtcEndpointEvents:
+   *
+   * - MediaStateChanged
+   * - ConnectionStateChanged
+   */
+  mapEvents() {
     let kElement = this.props.element.originalResponse;
 
-    if (!kElement) return;
+    if (!kElement) {
+      return;
+    }
 
     kElement.on('ElementConnected', (event) => {
       console.log('ElementConnected', event);
@@ -90,15 +136,20 @@ export default class Element extends Component {
       console.log('ElementDisconnected', event);
     });
 
-    kElement.on('MediaStateChanged', (event) => {
-      console.log('MediaStateChanged', event);
-    });
-
-    kElement.on('ConnectionStateChanged', (event) => {
-      console.log('ConnectionStateChanged', event);
-    });
+    // RtpEndpoint events
+    kElement.on('ConnectionStateChanged', this.onConnectionStateChanged.bind(this, kElement));
+    kElement.on('MediaStateChanged', this.onConnectionStateChanged.bind(this, kElement));
 
     this.eventsMappend = true;
+  }
+
+  unmapEvents() {
+    let kElement = this.props.element.originalResponse;
+
+    if (!kElement) return;
+
+    kElement.removeAllListeners();
+    this.eventsMappend = false;
   }
 
   render() {

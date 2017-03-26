@@ -14,16 +14,19 @@ class App extends Component {
   loadElementsQueue = [];
   loadElementsLock = false;
 
+  updateConnectionsInterval = 500;
+  updateConnectionsQueue = [];
+  updateConnectionsLock = false;
+
   state = {
     pipelines: {}
   };
 
   loadElementsWorker() {
-    console.log('loadElementsWorker tick');
-
     setInterval(() => {
       if (this.loadElementsLock) return;
       if (!this.loadElementsQueue.length) return;
+
       this.loadElementsLock = true;
 
       let pipelines = [];
@@ -37,9 +40,16 @@ class App extends Component {
 
       console.log('have to load', pipelines);
 
+      let errorCallback = (error) => {
+        this.loadElementsLock = false;
+        this.kurentoError(error);
+      };
+
       this.manager((error, manager) => {
+        if (error) return errorCallback(error);
+
         manager.getPipelines((error, kPipelines) => {
-          if (error) return this.kurentoError(error);
+          if (error) return errorCallback(error);
 
           async.forEachOf(kPipelines, (kPipeline, key, pipelineCallback) => {
             if (pipelines.indexOf(kPipeline.id) < 0) {
@@ -48,7 +58,7 @@ class App extends Component {
             }
 
             kPipeline.getChildren((error, kChildren) => {
-              if (error) return this.kurentoError(error);
+              if (error) return errorCallback(error);
 
               let children = [];
 
@@ -82,6 +92,48 @@ class App extends Component {
     }, this.loadElementsInterval)
   }
 
+  updateConnectionsWorker() {
+    setInterval(() => {
+      if (this.updateConnectionsLock) return;
+      if (!this.updateConnectionsQueue.length) return;
+      this.updateConnectionsLock = true;
+
+      let fetchedConnections = [];
+
+      async.forEachOf(this.updateConnectionsQueue, (queueElement, key, callback) => {
+        let changes = {
+          sinkConnections: [],
+          sourcesConnections: []
+        };
+
+        this.fetchElementConnectionInfo(queueElement.kElement, changes, () => {
+          fetchedConnections.push({
+            queueElement,
+            changes
+          });
+
+          callback();
+        });
+      }, (error) => {
+        if (error) return this.kurentoError(error);
+
+        let pipelines = this.state.pipelines;
+
+        fetchedConnections.forEach((conn) => {
+          let el = conn.queueElement;
+
+          pipelines[el.pipelineId].elements[el.elementId] =
+            {...pipelines[el.pipelineId].elements[el.elementId],...conn.changes}
+        });
+
+        this.setState({pipelines: pipelines});
+
+        this.updateConnectionsQueue = [];
+        this.updateConnectionsLock = false;
+      });
+    }, this.updateConnectionsInterval)
+  }
+
   kurentoError(e) {
     console.error(e)
   }
@@ -96,7 +148,7 @@ class App extends Component {
 
   connect2Kurento() {
     this.loadElementsWorker();
-    console.log('hedy');
+    this.updateConnectionsWorker();
 
     let pipelines = {};
 
@@ -126,72 +178,9 @@ class App extends Component {
                 sourcesConnections: []
               };
 
-              async.parallel([
-                (sinksCallback) => {
-                  kElement.getSinkConnections((error, kConnections) => {
-                    element.sinkConnections = {};
-
-                    kConnections.forEach((conn) => {
-                      let key = conn.type.toLowerCase();
-                      if (!element.sinkConnections[conn.source]) {
-                        element.sinkConnections[conn.source] = {
-                          peer: conn.source
-                        };
-                      }
-
-                      element.sinkConnections[conn.source][key] = conn;
-                    });
-
-                    sinksCallback();
-                  });
-                },
-                (sourcesCallback) => {
-                  kElement.getSourceConnections((error, kConnections) => {
-                    element.sourceConnections= {};
-
-                    kConnections.forEach((conn) => {
-                      let key = conn.type.toLowerCase();
-                      if (!element.sourceConnections[conn.sink]) {
-                        element.sourceConnections[conn.sink] = {
-                          peer: conn.sink
-                        };
-                      }
-
-                      element.sourceConnections[conn.sink][key] = conn;
-                    });
-
-                    sourcesCallback();
-                  });
-                },
-                (mediaInCallback) => {
-                  kElement.isMediaFlowingIn('AUDIO', (error, is) => {
-                    element.audioFlowingIn = is;
-                    mediaInCallback();
-                  });
-                },
-                (mediaInCallback) => {
-                  kElement.isMediaFlowingIn('VIDEO', (error, is) => {
-                    element.videoFlowingIn = is;
-                    mediaInCallback();
-                  });
-                },
-                (mediaInCallback) => {
-                  kElement.isMediaFlowingOut('AUDIO', (error, is) => {
-                    element.audioFlowingOut = is;
-                    mediaInCallback();
-                  });
-                },
-                (mediaInCallback) => {
-                  kElement.isMediaFlowingOut('VIDEO', (error, is) => {
-                    element.videoFlowingOut = is;
-                    mediaInCallback();
-                  });
-                },
-              ], (error) => {
-                if (error) return this.kurentoError(error);
-
+              this.fetchElementConnectionInfo(kElement, element, () => {
                 pipeline.elements[element.id] = element;
-                elementCallback()
+                elementCallback();
               });
             }, (error) => {
               if (error) return this.kurentoError(error);
@@ -206,6 +195,75 @@ class App extends Component {
           this.setupServerObjectEvents();
         });
       })
+    });
+  }
+
+  fetchElementConnectionInfo(kElement, element, callback) {
+    async.parallel([
+      (sinksCallback) => {
+        kElement.getSinkConnections((error, kConnections) => {
+          element.sinkConnections = {};
+
+          kConnections.forEach((conn) => {
+            let key = conn.type.toLowerCase();
+            if (!element.sinkConnections[conn.source]) {
+              element.sinkConnections[conn.source] = {
+                peer: conn.source
+              };
+            }
+
+            element.sinkConnections[conn.source][key] = conn;
+          });
+
+          sinksCallback();
+        });
+      },
+      (sourcesCallback) => {
+        kElement.getSourceConnections((error, kConnections) => {
+          element.sourceConnections= {};
+
+          kConnections.forEach((conn) => {
+            let key = conn.type.toLowerCase();
+            if (!element.sourceConnections[conn.sink]) {
+              element.sourceConnections[conn.sink] = {
+                peer: conn.sink
+              };
+            }
+
+            element.sourceConnections[conn.sink][key] = conn;
+          });
+
+          sourcesCallback();
+        });
+      },
+      (mediaInCallback) => {
+        kElement.isMediaFlowingIn('AUDIO', (error, is) => {
+          element.audioFlowingIn = is;
+          mediaInCallback();
+        });
+      },
+      (mediaInCallback) => {
+        kElement.isMediaFlowingIn('VIDEO', (error, is) => {
+          element.videoFlowingIn = is;
+          mediaInCallback();
+        });
+      },
+      (mediaInCallback) => {
+        kElement.isMediaFlowingOut('AUDIO', (error, is) => {
+          element.audioFlowingOut = is;
+          mediaInCallback();
+        });
+      },
+      (mediaInCallback) => {
+        kElement.isMediaFlowingOut('VIDEO', (error, is) => {
+          element.videoFlowingOut = is;
+          mediaInCallback();
+        });
+      },
+    ], (error) => {
+      if (error) return this.kurentoError(error);
+
+      callback(element)
     });
   }
 
@@ -265,7 +323,7 @@ class App extends Component {
   }
 
   destroyPipeline(id) {
-    console.log('destroy pipeline', id);
+    console.warn('destroy pipeline', id);
     // REVIEW:
     let pipelines = this.state.pipelines;
     delete pipelines[id];
@@ -273,6 +331,7 @@ class App extends Component {
   }
 
   createElement(pipelineId, elementId, fullId) {
+    console.warn('create element', elementId);
     let element = {
       id: fullId,
       originalResponse: null
@@ -290,7 +349,7 @@ class App extends Component {
   }
 
   destroyElement(pipelineId, elementId) {
-    console.log('destroy element', elementId);
+    console.warn('destroy element', elementId);
     let pipelines = this.state.pipelines;
     delete pipelines[pipelineId].elements[elementId];
     this.setState({pipelines: pipelines});
@@ -303,7 +362,6 @@ class App extends Component {
       let [pipelineId, elementId] = Utils.parseId(kElement.id);
 
       pipelines[pipelineId].elements[elementId].originalResponse = kElement;
-      console.log('element', pipelines[pipelineId].elements[elementId], elementId);
     });
 
     this.setState({pipelines: pipelines});
@@ -319,12 +377,20 @@ class App extends Component {
     this.connect2Kurento();
   }
 
+  connChanged(elementInfo) {
+    if (this.updateConnectionsLock === true) {
+      setTimeout(this.connChanged.bind(this, elementInfo), 200);
+    }
+
+    this.updateConnectionsQueue.push(elementInfo);
+  }
+
   render() {
     let pipelines = [];
 
     for (let key of Object.keys(this.state.pipelines)) {
       let pipeline = this.state.pipelines[key];
-      pipelines.push(<Pipeline pipeline={pipeline} key={key}></Pipeline>);
+      pipelines.push(<Pipeline pipeline={pipeline} key={key} connChanged={this.connChanged.bind(this)}></Pipeline>);
     }
 
     return (

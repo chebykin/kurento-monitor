@@ -8,7 +8,7 @@ export default class Pipeline extends Component {
 
     for (let key of Object.keys(this.props.pipeline.elements)) {
       let element = this.props.pipeline.elements[key];
-      elements.push(<Element element={element} key={element.id}></Element>);
+      elements.push(<Element element={element} key={element.id} connChanged={this.props.connChanged}></Element>);
     }
 
     return (
