@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import Utils from '../Utils'
 
 
 export default class Connection extends Component {
@@ -6,9 +7,7 @@ export default class Connection extends Component {
   constructor(props) {
     super(props);
 
-    let [idKurento, elementType] = this.peer().split('/')[1].split('.');
-    this.id = idKurento.split('_')[0];
-    this.elementType = elementType;
+    [this.pipelineId, this.elementId, this.elementType] = Utils.parseId(this.peer());
   }
 
   peer() {
@@ -44,7 +43,7 @@ export default class Connection extends Component {
       <li className={this.connStyleClass()}>
         {this.id} <br/>
         {this.connType}&nbsp;{this.direction()}<br/>
-        {this.elementType}<br/>
+        {this.elementId}<br/>
         {this.icons()}
       </li>
     );

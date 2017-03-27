@@ -5,7 +5,7 @@ export default class Source extends Connection {
   connType = "Source";
 
   direction() {
-    return 'to'
+    return 'from'
   }
 
   audioStyleClass() {

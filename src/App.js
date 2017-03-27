@@ -208,7 +208,7 @@ class App extends Component {
             let key = conn.type.toLowerCase();
             if (!element.sinkConnections[conn.source]) {
               element.sinkConnections[conn.source] = {
-                peer: conn.source
+                peer: conn.sink
               };
             }
 
@@ -226,7 +226,7 @@ class App extends Component {
             let key = conn.type.toLowerCase();
             if (!element.sourceConnections[conn.sink]) {
               element.sourceConnections[conn.sink] = {
-                peer: conn.sink
+                peer: conn.source
               };
             }
 
