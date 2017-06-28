@@ -1,3 +1,4 @@
+/* globals BaseRtpEndpoint*/
 import React, {Component} from 'react';
 import Sink from './Sink';
 import Source from './Source';
@@ -13,11 +14,9 @@ export default class Element extends Component {
   constructor(props) {
     super(props);
 
-    let [pipelineId, elementId] = Utils.parseId(this.props.element.id);
+    [this.pipelineId, this.elementId, this.elementType] = Utils.parseId(this.props.element.id);
 
     this.id = this.props.element.id;
-    this.pipelineId = pipelineId;
-    this.elementId = elementId;
     this.kElement = this.props.element.originalResponse;
 
     this.eventsMappend = false;
@@ -59,6 +58,14 @@ export default class Element extends Component {
     if (this.eventsMappend === false) {
       this.mapEvents();
     }
+  }
+
+  isBaseRtpEndpoint() {
+    return this.elementType === 'WebRtcEndpoint' || this.elementType === 'RtpEndpoint';
+  }
+
+  isPlayerEndpoint() {
+    return this.elementType === 'PlayerEndpoint';
   }
 
   name() {
@@ -136,9 +143,16 @@ export default class Element extends Component {
       console.log('ElementDisconnected', event);
     });
 
-    // RtpEndpoint events
-    kElement.on('ConnectionStateChanged', this.onConnectionStateChanged.bind(this, kElement));
-    kElement.on('MediaStateChanged', this.onConnectionStateChanged.bind(this, kElement));
+    if (this.isBaseRtpEndpoint()) {
+      kElement.on('ConnectionStateChanged', this.onConnectionStateChanged.bind(this, kElement));
+      kElement.on('MediaStateChanged', this.onConnectionStateChanged.bind(this, kElement));
+    }
+
+    if (this.isPlayerEndpoint()) {
+      kElement.on('EndOfStream', console.error);
+    }
+
+    kElement.on('Error', console.error);
 
     this.eventsMappend = true;
   }
